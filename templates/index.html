@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="text-center mb-5">
+  <h1 class="fw-bold">AI Smart Parking Slot Detection</h1>
+  <p class="text-muted-2">Upload an image or video of the parking lot &mdash; the model classifies every slot from
+    <code>mask_1920_1080.png</code> as empty or occupied ({{ total_slots }} slots detected from mask).</p>
+</div>
+
+<div class="row g-4 justify-content-center">
+  <div class="col-md-5">
+    <div class="card p-4 h-100">
+      <h4 class="mb-3">📷 Detect from Image</h4>
+      <form action="{{ url_for('detect_image') }}" method="post" enctype="multipart/form-data">
+        <div class="upload-drop mb-3">
+          <input class="form-control" type="file" name="image_file" accept=".jpg,.jpeg,.png,.bmp" required>
+          <small class="text-muted-2 d-block mt-2">JPG, JPEG, PNG, BMP</small>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Run Detection</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card p-4 h-100">
+      <h4 class="mb-3">🎬 Detect from Video</h4>
+      <form action="{{ url_for('detect_video') }}" method="post" enctype="multipart/form-data">
+        <div class="upload-drop mb-3">
+          <input class="form-control" type="file" name="video_file" accept=".mp4,.avi,.mov,.mkv" required>
+          <small class="text-muted-2 d-block mt-2">MP4, AVI, MOV, MKV &mdash; processing can take a while for long clips</small>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Run Detection</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
