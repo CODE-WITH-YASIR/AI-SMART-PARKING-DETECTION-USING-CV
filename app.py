@@ -1,4 +1,3 @@
-```python
 import os
 import uuid
 import logging
@@ -20,7 +19,7 @@ from detection import process_image, process_video, TOTAL_SLOTS
 
 
 # ============================================================
-# APP CONFIGURATION
+# CONFIGURATION
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -31,12 +30,9 @@ OUTPUT_FOLDER = BASE_DIR / "static" / "outputs"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
 
-
-# Supported file formats
 ALLOWED_IMAGE_EXT = {"jpg", "jpeg", "png", "bmp"}
 ALLOWED_VIDEO_EXT = {"mp4", "avi", "mov", "mkv"}
 
-# Maximum upload size: 300 MB
 MAX_UPLOAD_SIZE = 300 * 1024 * 1024
 
 
@@ -46,8 +42,6 @@ MAX_UPLOAD_SIZE = 300 * 1024 * 1024
 
 app = Flask(__name__)
 
-# Use environment variable when available.
-# For local development, fallback value is used.
 app.secret_key = os.environ.get(
     "SECRET_KEY",
     "smart-parking-development-secret"
@@ -75,7 +69,7 @@ logger = logging.getLogger(__name__)
 # ============================================================
 
 def allowed_file(filename, allowed_extensions):
-    """Check whether a filename has an allowed extension."""
+    """Check whether the uploaded file has an allowed extension."""
     if not filename or "." not in filename:
         return False
 
@@ -84,7 +78,7 @@ def allowed_file(filename, allowed_extensions):
 
 
 def generate_safe_filename(original_filename):
-    """Generate a unique and safe filename."""
+    """Create a unique and safe filename."""
     safe_name = secure_filename(original_filename)
 
     if not safe_name:
@@ -101,14 +95,14 @@ def generate_safe_filename(original_filename):
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
-    """Handle files larger than MAX_CONTENT_LENGTH."""
+    """Handle files larger than the configured upload limit."""
     flash("File is too large. Maximum allowed size is 300 MB.")
     return redirect(url_for("home"))
 
 
 @app.errorhandler(404)
 def page_not_found(error):
-    """Handle invalid routes."""
+    """Handle invalid URLs."""
     return render_template(
         "index.html",
         total_slots=TOTAL_SLOTS,
@@ -119,7 +113,9 @@ def page_not_found(error):
 def internal_server_error(error):
     """Handle unexpected server errors."""
     logger.exception("Internal server error")
+
     flash("Something went wrong while processing your request.")
+
     return redirect(url_for("home"))
 
 
@@ -129,9 +125,7 @@ def internal_server_error(error):
 
 @app.route("/health")
 def health():
-    """
-    Health endpoint for deployment platforms such as Render.
-    """
+    """Health check endpoint for deployment platforms."""
     return {
         "status": "healthy",
         "service": "AI Smart Parking Detection",
@@ -140,12 +134,12 @@ def health():
 
 
 # ============================================================
-# HOME PAGE
+# HOME
 # ============================================================
 
 @app.route("/")
 def home():
-    """Render the Smart Parking Detection dashboard."""
+    """Render the Smart Parking Detection homepage."""
     return render_template(
         "index.html",
         total_slots=TOTAL_SLOTS,
@@ -167,7 +161,10 @@ def detect_image():
         return redirect(url_for("home"))
 
     if not allowed_file(file.filename, ALLOWED_IMAGE_EXT):
-        flash("Unsupported image format. Use JPG, JPEG, PNG or BMP.")
+        flash(
+            "Unsupported image format. "
+            "Use JPG, JPEG, PNG or BMP."
+        )
         return redirect(url_for("home"))
 
     filename = generate_safe_filename(file.filename)
@@ -183,19 +180,25 @@ def detect_image():
             str(OUTPUT_FOLDER),
         )
 
-        logger.info("Image processing completed: %s", output_name)
+        logger.info(
+            "Image processing completed: %s",
+            output_name,
+        )
 
     except Exception:
         logger.exception("Image detection failed")
 
-        # Remove failed upload if possible
         try:
             if input_path.exists():
                 input_path.unlink()
         except OSError:
             pass
 
-        flash("Image detection failed. Please try another image.")
+        flash(
+            "Image detection failed. "
+            "Please try another image."
+        )
+
         return redirect(url_for("home"))
 
     return render_template(
@@ -220,7 +223,10 @@ def detect_video():
         return redirect(url_for("home"))
 
     if not allowed_file(file.filename, ALLOWED_VIDEO_EXT):
-        flash("Unsupported video format. Use MP4, AVI, MOV or MKV.")
+        flash(
+            "Unsupported video format. "
+            "Use MP4, AVI, MOV or MKV."
+        )
         return redirect(url_for("home"))
 
     filename = generate_safe_filename(file.filename)
@@ -236,7 +242,10 @@ def detect_video():
             str(OUTPUT_FOLDER),
         )
 
-        logger.info("Video processing completed: %s", output_name)
+        logger.info(
+            "Video processing completed: %s",
+            output_name,
+        )
 
     except Exception:
         logger.exception("Video detection failed")
@@ -247,7 +256,11 @@ def detect_video():
         except OSError:
             pass
 
-        flash("Video detection failed. Please try another video.")
+        flash(
+            "Video detection failed. "
+            "Please try another video."
+        )
+
         return redirect(url_for("home"))
 
     return render_template(
@@ -258,12 +271,13 @@ def detect_video():
 
 
 # ============================================================
-# SERVE PROCESSED OUTPUTS
+# SERVE OUTPUT FILES
 # ============================================================
 
 @app.route("/outputs/<path:filename>")
 def serve_output(filename):
     """Serve processed detection results."""
+
     return send_from_directory(
         str(OUTPUT_FOLDER),
         filename,
@@ -271,12 +285,12 @@ def serve_output(filename):
 
 
 # ============================================================
-# DOWNLOAD RESULTS
+# DOWNLOAD RESULT
 # ============================================================
 
 @app.route("/download/<path:filename>")
 def download(filename):
-    """Download a processed result file."""
+    """Download a processed result."""
 
     file_path = OUTPUT_FOLDER / filename
 
@@ -291,12 +305,13 @@ def download(filename):
 
 
 # ============================================================
-# APPLICATION STARTUP
+# START APPLICATION
 # ============================================================
 
 if __name__ == "__main__":
-    # Render provides PORT through environment variables.
-    # Local development falls back to port 10000.
+
+    # Render provides the PORT environment variable.
+    # Local development uses port 10000 if PORT is unavailable.
 
     port = int(os.environ.get("PORT", 10000))
 
@@ -311,4 +326,3 @@ if __name__ == "__main__":
         debug=False,
         threaded=True,
     )
-```
